@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FAST Stroke Screening</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="badge">Medical Triage Tool</div>
+        <h1>FAST Stroke Screening</h1>
+        <p class="tagline">Quantified Face · Arm · Speech · Time — AI-assisted clinical screening</p>
+      </div>
+    </header>
+
+    <main class="container">
+
+      <section class="card">
+        <h2>Screening Metadata</h2>
+        <div class="grid two-col">
+          <label>
+            Patient ID
+            <input id="patientId" type="text" placeholder="e.g. PT-204" />
+          </label>
+          <label>
+            Screener Name
+            <input id="screenerName" type="text" placeholder="e.g. Nurse Patel" />
+          </label>
+          <label>
+            Language / Accent Mode
+            <select id="languageSelect">
+              <option>English</option>
+              <option>Spanish</option>
+              <option>Hindi</option>
+              <option>Telugu</option>
+              <option>Neutral / Non-verbal cadence</option>
+            </select>
+          </label>
+          <label>
+            Retake Reason
+            <input id="retakeReason" type="text" placeholder="optional" />
+          </label>
+        </div>
+      </section>
+
+      <!-- Baseline card — record a separate baseline screening -->
+      <section class="card baseline-card">
+        <h2>Baseline Screening</h2>
+        <p class="help-text">Record a baseline for this patient — the results are saved silently for future comparison. No report is generated.</p>
+        <div class="actions">
+          <button id="toggleBaselineBtn" type="button" class="btn-blue">Record Baseline →</button>
+          <span id="baselineRecordStatus"></span>
+        </div>
+
+        <div class="baseline-drawer" id="baselineDrawer">
+          <div class="baseline-mini-step">
+            <span class="step-label">🧑 Face (5s smile)</span>
+            <button id="bFaceBtn" type="button" class="btn-blue">Record</button>
+            <span id="bFaceStatus">Not recorded</span>
+          </div>
+          <div class="baseline-mini-step">
+            <span class="step-label">💪 Arm (5s raised)</span>
+            <button id="bArmBtn" type="button" class="btn-blue">Record</button>
+            <span id="bArmStatus">Not recorded</span>
+          </div>
+          <div class="baseline-mini-step">
+            <span class="step-label">🗣️ Speech (5s phrase)</span>
+            <button id="bSpeechBtn" type="button" class="btn-blue">Record</button>
+            <span id="bSpeechStatus">Not recorded</span>
+          </div>
+          <div class="actions" style="margin-top:14px">
+            <button id="saveBaselineBtn" type="button" class="btn-green" disabled>Save Baseline</button>
+            <span id="saveBaselineStatus"></span>
+          </div>
+          <div class="baseline-saved-banner" id="baselineSavedBanner">
+            ✓ Baseline saved — future screenings for this patient will compare against it.
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="step-pill">1</span>Face (5s smile video)</h2>
+        <video id="facePreview" autoplay muted playsinline></video>
+        <p class="coach" id="faceCoach">Center your face, keep both eyes visible, and smile naturally.</p>
+        <div class="actions">
+          <button id="faceRecordBtn">Record Face (5s)</button>
+          <span id="faceStatus">Not recorded</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="step-pill">2</span>Arm (5s both arms raised)</h2>
+        <video id="armPreview" autoplay muted playsinline></video>
+        <p class="coach" id="armCoach">Raise both arms fully into frame and hold them steady.</p>
+        <div class="actions">
+          <button id="armRecordBtn">Record Arm (5s)</button>
+          <span id="armStatus">Not recorded</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="step-pill">3</span>Speech (5s fixed sentence)</h2>
+        <p class="prompt" id="speechPrompt">Please read: "Today is a bright sunny day and I feel well."</p>
+        <p class="coach" id="speechCoach">Speak clearly, at a natural pace, with minimal background noise.</p>
+        <div class="actions">
+          <button id="speechRecordBtn">Record Speech (5s)</button>
+          <span id="speechStatus">Not recorded</span>
+        </div>
+        <div class="speech-preview">
+          <audio id="speechPlayback" controls></audio>
+          <canvas id="speechWaveform" width="800" height="180"></canvas>
+          <div class="grid two-col mini-metrics">
+            <div><strong>Pause markers:</strong> <span id="speechPauseInfo">-</span></div>
+            <div><strong>Articulation pace:</strong> <span id="speechPaceInfo">-</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="actions submit-row">
+        <button id="analyzeBtn">Analyze FAST</button>
+        <button id="exportPdfBtn" type="button" class="btn-blue" disabled>Export PDF</button>
+        <button id="printBtn" type="button" class="btn-outline" disabled>Print</button>
+        <span id="analyzeStatus"></span>
+      </section>
+
+      <section class="card" id="reportCard" hidden>
+        <h2>Quantified Triage Report</h2>
+        <div class="grid">
+          <div class="score-cell"><strong>Facial Asymmetry:</strong> <span id="facialScore">-</span></div>
+          <div class="score-cell"><strong>Arm Drift:</strong> <span id="armScore">-</span></div>
+          <div class="score-cell"><strong>Speech Instability:</strong> <span id="speechScore">-</span></div>
+          <div class="score-cell"><strong>FAST Risk Index:</strong> <span id="riskScore">-</span></div>
+          <div class="score-cell"><strong>Category:</strong> <span id="riskCategory">-</span></div>
+          <div class="score-cell"><strong>Rule Impression:</strong> <span id="ruleImpression">-</span></div>
+          <div class="score-cell"><strong>Quality / Confidence:</strong> <span id="confidenceInfo">-</span></div>
+          <div class="score-cell"><strong>Timestamp:</strong> <span id="reportTimestamp">-</span></div>
+        </div>
+
+        <h3>Arm Drift Graph with Side Comparison</h3>
+        <canvas id="armChart" width="800" height="240"></canvas>
+
+        <h3>Facial Landmark Asymmetry Overlay</h3>
+        <canvas id="faceOverlayCanvas" width="800" height="400"></canvas>
+
+        <h3>Speech Instability Timeline</h3>
+        <canvas id="speechTimeline" width="800" height="220"></canvas>
+
+        <h3>Baseline vs Current Comparison</h3>
+        <div id="baselinePanel" class="comparison-panel">No baseline comparison yet.</div>
+
+        <h3>Explainability</h3>
+        <div id="explainabilityPanel" class="comparison-panel"></div>
+
+        <h3>Recommendation</h3>
+        <div id="recommendationPanel" class="recommendation-panel">
+          <p id="recommendation"></p>
+        </div>
+
+        <h3>Disclaimer</h3>
+        <p id="disclaimer"></p>
+
+        <h3>Recent Session Audit Trail</h3>
+        <div id="sessionHistory" class="comparison-panel">No previous sessions loaded.</div>
+      </section>
+    </main>
+
+    <script src="/static/main.js"></script>
+  </body>
+</html>
+
+      <section class="card">
+        <h2>Screening Metadata</h2>
+        <div class="grid two-col">
+          <label>
+            Patient ID
+            <input id="patientId" type="text" placeholder="e.g. PT-204" />
+          </label>
+          <label>
+            Screener Name
+            <input id="screenerName" type="text" placeholder="e.g. Nurse Patel" />
+          </label>
+          <label>
+            Language / Accent-Tolerant Mode
+            <select id="languageSelect">
+              <option>English</option>
+              <option>Spanish</option>
+              <option>Hindi</option>
+              <option>Telugu</option>
+              <option>Neutral / Non-verbal cadence</option>
+            </select>
+          </label>
+          <label>
+            Retake Reason
+            <input id="retakeReason" type="text" placeholder="optional" />
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Baseline Input</h2>
+        <p class="help-text">Optional: enter prior baseline scores or leave blank to compare against the most recent prior session for the same patient ID.</p>
+        <div class="grid three-col">
+          <label>
+            Baseline Facial
+            <input id="baselineFace" type="number" min="0" max="1" step="0.001" placeholder="0.000" />
+          </label>
+          <label>
+            Baseline Arm
+            <input id="baselineArm" type="number" min="0" max="1" step="0.001" placeholder="0.000" />
+          </label>
+          <label>
+            Baseline Speech
+            <input id="baselineSpeech" type="number" min="0" max="1" step="0.001" placeholder="0.000" />
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>1) Face task (5s smile video)</h2>
+        <video id="facePreview" autoplay muted playsinline></video>
+        <p class="coach" id="faceCoach">Coaching: Center your face, keep both eyes visible, and smile naturally.</p>
+        <div class="actions">
+          <button id="faceRecordBtn">Record Face (5s)</button>
+          <span id="faceStatus">Not recorded</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>2) Arm task (5s both arms raised)</h2>
+        <video id="armPreview" autoplay muted playsinline></video>
+        <p class="coach" id="armCoach">Coaching: Raise both arms fully into frame and hold them steady.</p>
+        <div class="actions">
+          <button id="armRecordBtn">Record Arm (5s)</button>
+          <span id="armStatus">Not recorded</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>3) Speech task (fixed sentence)</h2>
+        <p class="prompt" id="speechPrompt">Please read: “Today is a bright sunny day and I feel well.”</p>
+        <p class="coach" id="speechCoach">Coaching: Speak clearly, at a natural pace, with minimal background noise.</p>
+        <div class="actions">
+          <button id="speechRecordBtn">Record Speech (5s)</button>
+          <span id="speechStatus">Not recorded</span>
+        </div>
+        <div class="speech-preview">
+          <audio id="speechPlayback" controls></audio>
+          <canvas id="speechWaveform" width="800" height="180"></canvas>
+          <div class="grid two-col mini-metrics">
+            <div><strong>Pause markers:</strong> <span id="speechPauseInfo">-</span></div>
+            <div><strong>Articulation pace:</strong> <span id="speechPaceInfo">-</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Rule-based mimic inputs</h2>
+        <label><input type="checkbox" id="droopOnly" /> Facial droop without arm weakness?</label>
+        <label><input type="checkbox" id="speechIntact" /> Speech intact?</label>
+        <label><input type="checkbox" id="onsetGradual" /> Onset gradual?</label>
+      </section>
+
+      <section class="actions submit-row">
+        <button id="analyzeBtn">Analyze FAST</button>
+        <button id="exportPdfBtn" type="button" disabled>Export PDF</button>
+        <button id="printBtn" type="button" disabled>Print / Save PDF</button>
+        <span id="analyzeStatus"></span>
+      </section>
+
+      <section class="card" id="reportCard" hidden>
+        <h2>Quantified Triage Report</h2>
+        <div class="grid">
+          <div><strong>Facial Asymmetry:</strong> <span id="facialScore">-</span></div>
+          <div><strong>Arm Drift:</strong> <span id="armScore">-</span></div>
+          <div><strong>Speech Instability:</strong> <span id="speechScore">-</span></div>
+          <div><strong>FAST Risk Index:</strong> <span id="riskScore">-</span></div>
+          <div><strong>Category:</strong> <span id="riskCategory">-</span></div>
+          <div><strong>Rule Impression:</strong> <span id="ruleImpression">-</span></div>
+          <div><strong>Quality / Confidence:</strong> <span id="confidenceInfo">-</span></div>
+          <div><strong>Timestamp:</strong> <span id="reportTimestamp">-</span></div>
+        </div>
+
+        <h3>Arm Drift Graph with Side Comparison</h3>
+        <canvas id="armChart" width="800" height="240"></canvas>
+
+        <h3>Facial Landmark Asymmetry Overlay</h3>
+        <canvas id="faceOverlayCanvas" width="800" height="400"></canvas>
+
+        <h3>Speech Instability Timeline</h3>
+        <canvas id="speechTimeline" width="800" height="220"></canvas>
+
+        <h3>Baseline vs Current Comparison</h3>
+        <div id="baselinePanel" class="comparison-panel">No baseline comparison yet.</div>
+
+        <h3>Explainability</h3>
+        <div id="explainabilityPanel" class="comparison-panel"></div>
+
+        <h3>Recommendation</h3>
+        <div id="recommendationPanel" class="recommendation-panel">
+          <p id="recommendation"></p>
+        </div>
+
+        <h3>Disclaimer</h3>
+        <p id="disclaimer"></p>
+
+        <h3>Recent Session Audit Trail</h3>
+        <div id="sessionHistory" class="comparison-panel">No previous sessions loaded.</div>
+      </section>
+    </main>
+
+    <script src="/static/main.js"></script>
+  </body>
+</html>
