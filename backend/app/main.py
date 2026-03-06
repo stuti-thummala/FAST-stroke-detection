@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+from io import BytesIO
 from pathlib import Path
 
 from fastapi import Body, FastAPI, File, Form, HTTPException, Query, UploadFile
@@ -16,6 +17,8 @@ from .analysis.risk import build_baseline_comparison, build_explainability, buil
 from .analysis.speech import analyze_speech_audio
 from .reporting import generate_pdf
 from .storage import append_session, latest_baseline, latest_session, list_sessions
+
+import qrcode
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -135,6 +138,11 @@ async def analyze_fast(
             "report": report,
             "explainability": explainability,
             "baseline_comparison": baseline_comparison,
+            "confidence_breakdown": {
+                "face":   round(face_result["details"].get("quality_confidence", 0.0), 3),
+                "arm":    round(arm_result["details"].get("quality_confidence", 0.0), 3),
+                "speech": round(speech_result["details"].get("quality_confidence", 0.0), 3),
+            },
             "recent_sessions": list_sessions(patient_id=patient_id, limit=5) if patient_id else [],
         }
     finally:
@@ -146,6 +154,19 @@ async def analyze_fast(
 @app.get("/api/sessions")
 def get_sessions(patient_id: str | None = Query(default=None), limit: int = Query(default=10, ge=1, le=50)):
     return {"sessions": list_sessions(patient_id=patient_id, limit=limit)}
+
+
+@app.get("/api/qr/start-session")
+def get_start_session_qr(target: str = Query(..., min_length=1, max_length=2048)):
+    qr = qrcode.QRCode(version=None, box_size=8, border=2)
+    qr.add_data(target)
+    qr.make(fit=True)
+    image = qr.make_image(fill_color="black", back_color="white")
+
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    buffer.seek(0)
+    return StreamingResponse(buffer, media_type="image/png")
 
 
 @app.post("/api/report/pdf")

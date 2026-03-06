@@ -7,3 +7,4 @@ mediapipe==0.10.32
 librosa==0.11.0
 soundfile==0.13.1
 reportlab==4.4.1
+qrcode[pil]==7.4.2

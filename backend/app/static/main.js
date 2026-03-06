@@ -6,6 +6,8 @@ const speechRecordBtn = document.getElementById("speechRecordBtn");
 const analyzeBtn = document.getElementById("analyzeBtn");
 const exportPdfBtn = document.getElementById("exportPdfBtn");
 const printBtn = document.getElementById("printBtn");
+const startQrImage = document.getElementById("startQrImage");
+const startQrLink = document.getElementById("startQrLink");
 
 const faceStatus = document.getElementById("faceStatus");
 const armStatus = document.getElementById("armStatus");
@@ -59,6 +61,21 @@ const baselinePanel = document.getElementById("baselinePanel");
 const explainabilityPanel = document.getElementById("explainabilityPanel");
 const sessionHistory = document.getElementById("sessionHistory");
 
+// Confidence breakdown panel
+const confidenceBreakdown = document.getElementById("confidenceBreakdown");
+const confOverallEl     = document.getElementById("confOverall");
+const confFaceFill      = document.getElementById("confFaceFill");
+const confArmFill       = document.getElementById("confArmFill");
+const confSpeechFill    = document.getElementById("confSpeechFill");
+const confFaceVal       = document.getElementById("confFaceVal");
+const confArmVal        = document.getElementById("confArmVal");
+const confSpeechVal     = document.getElementById("confSpeechVal");
+// Gauge
+const gaugeFillEl   = document.getElementById("gaugeFill");
+const gaugeNeedleEl = document.getElementById("gaugeNeedle");
+const gaugeValueEl  = document.getElementById("gaugeValue");
+const gaugeCatEl    = document.getElementById("gaugeCat");
+
 const LANGUAGE_PROMPTS = {
   English: "Please read: “Today is a bright sunny day and I feel well.”",
   Spanish: "Lea: “Hoy hace un día soleado y me siento bien.”",
@@ -84,6 +101,15 @@ function generateCaptureId(prefix) {
 
 function fmt(value) {
   return Number(value || 0).toFixed(3);
+}
+
+function initStartQr() {
+  if (!startQrImage || !startQrLink) return;
+  const sessionUrl = `${window.location.origin}/?start=1`;
+  const qrApi = `/api/qr/start-session?target=${encodeURIComponent(sessionUrl)}`;
+  startQrImage.src = qrApi;
+  startQrLink.href = sessionUrl;
+  startQrLink.textContent = sessionUrl;
 }
 
 function setPrompt() {
@@ -618,6 +644,49 @@ async function fetchHistory(patientId) {
   }
 }
 
+function animateRiskGauge(riskIndex, category) {
+  if (!gaugeFillEl || !gaugeNeedleEl) return;
+  // Delay slightly so CSS transition fires after hidden is removed
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      gaugeFillEl.style.strokeDashoffset = String(1 - riskIndex);
+      const deg = (riskIndex * 180) - 90;
+      gaugeNeedleEl.style.transform = `rotate(${deg}deg)`;
+    });
+  });
+  gaugeValueEl.textContent = `${Math.round(riskIndex * 100)}%`;
+  const cat = (category || "low").toLowerCase();
+  gaugeCatEl.textContent = category || "—";
+  gaugeCatEl.className = `gauge-cat ${cat}`;
+}
+
+function confBand(v) {
+  if (v >= 0.75) return "high";
+  if (v >= 0.45) return "moderate";
+  return "low";
+}
+
+function renderConfidenceBreakdown(breakdown, overall, band) {
+  if (!breakdown || !confidenceBreakdown) return;
+  const pct = (v) => `${Math.round(v * 100)}%`;
+
+  [[confFaceFill,   confFaceVal,   breakdown.face],
+   [confArmFill,    confArmVal,    breakdown.arm],
+   [confSpeechFill, confSpeechVal, breakdown.speech]
+  ].forEach(([fill, val, v]) => {
+    if (!fill || !val) return;
+    const level = confBand(v);
+    fill.style.width = pct(v);
+    fill.className = `conf-bar-fill ${level}`;
+    val.textContent = pct(v);
+  });
+
+  if (confOverallEl) {
+    confOverallEl.textContent = `Overall ${pct(overall)} · ${band || "—"}`;
+  }
+  confidenceBreakdown.hidden = false;
+}
+
 function updateRecommendationPanel(report) {
   recommendationEl.textContent = report.recommendation || "";
   recommendationPanel.className = "recommendation-panel";
@@ -645,6 +714,12 @@ function populateReport(payload) {
   renderBaselineComparison(payload.baseline_comparison);
   renderExplainability(payload.explainability);
   renderSessionHistory(payload.recent_sessions || []);
+  animateRiskGauge(report.fast_risk_index ?? 0, report.category);
+  renderConfidenceBreakdown(
+    payload.confidence_breakdown,
+    report.quality_confidence ?? 0,
+    report.confidence_band
+  );
 
   reportCard.hidden = false;
   exportPdfBtn.disabled = false;
@@ -849,3 +924,4 @@ ensureCamera().catch((err) => {
   armStatus.textContent = `Camera unavailable: ${err.message}`;
 });
 fetchHistory(patientIdInput.value.trim());
+initStartQr();
