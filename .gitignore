@@ -36,4 +36,5 @@ backend/models/
 # Optional local uploads/temp artifacts
 tmp/
 *.webm
-*.wav.env
+*.wav
+.env
