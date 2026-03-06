@@ -121,6 +121,8 @@ async function ensureCamera() {
   cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
   facePreview.srcObject = cameraStream;
   armPreview.srcObject = cameraStream;
+  // Kick off live landmark overlay (defined in landmark-overlay.js module)
+  if (typeof window.startLandmarkOverlay === "function") window.startLandmarkOverlay();
   return cameraStream;
 }
 
@@ -603,11 +605,75 @@ function renderBaselineComparison(baselineComparison) {
   baselinePanel.innerHTML = `<strong>${baselineComparison.summary}</strong>${items}`;
 }
 
-function renderExplainability(explainability = {}) {
-  explainabilityPanel.innerHTML = ["facial", "arm", "speech"]
-    .filter((key) => explainability[key])
-    .map((key) => `<div class="explain-item"><strong>${key.toUpperCase()}</strong><br />${explainability[key]}</div>`)
-    .join("") || "Explainability unavailable.";
+function renderExplainability(explainability = {}, payload = {}) {
+  const report = payload.report || {};
+  const fd = payload.facial?.details || {};
+  const ad = payload.arm?.details || {};
+  const sd = payload.speech?.details || {};
+  const channels = [
+    {
+      key: "facial",
+      label: "Face",
+      score: report.facial_asymmetry_score,
+      weight: 40,
+      metrics: [
+        { label: "Mouth asymmetry", value: fd.mouth_mean },
+        { label: "Eye asymmetry",   value: fd.eye_mean },
+        { label: "Capture quality", value: fd.quality_confidence },
+      ],
+    },
+    {
+      key: "arm",
+      label: "Arm",
+      score: report.arm_drift_score,
+      weight: 40,
+      metrics: [
+        { label: "Drift metric",    value: ad.drift_metric },
+        { label: "Height delta",    value: ad.final_height_diff },
+        { label: "Capture quality", value: ad.quality_confidence },
+      ],
+    },
+    {
+      key: "speech",
+      label: "Speech",
+      score: report.speech_instability_score,
+      weight: 20,
+      metrics: [
+        { label: "Pause variance",    value: sd.pause_var },
+        { label: "Articulation dev",  value: sd.articulation_dev },
+        { label: "MFCC variance",     value: sd.mfcc_var },
+        { label: "Capture quality",   value: sd.quality_confidence },
+      ],
+    },
+  ];
+
+  const scoreColor = (v) =>
+    v == null ? "#6b7280" : v >= 0.7 ? "#dc2626" : v >= 0.4 ? "#d97706" : "#16a34a";
+
+  explainabilityPanel.innerHTML = channels
+    .map((ch) => {
+      const driver = explainability[ch.key] || "No explanation available.";
+      const scoreVal = ch.score != null ? ch.score.toFixed(3) : "—";
+      const metricRows = ch.metrics
+        .map(
+          (m) =>
+            `<tr><td class="ex-metric-label">${m.label}</td><td class="ex-metric-val">${
+              m.value != null ? m.value.toFixed(4) : "—"
+            }</td></tr>`
+        )
+        .join("");
+      return `
+        <div class="explain-item">
+          <div class="ex-header">
+            <span class="ex-channel">${ch.label}</span>
+            <span class="ex-score" style="color:${scoreColor(ch.score)}">${scoreVal}</span>
+            <span class="ex-weight">${ch.weight}% weight</span>
+          </div>
+          <table class="ex-table">${metricRows}</table>
+          <p class="ex-driver">${driver}</p>
+        </div>`;
+    })
+    .join("");
 }
 
 function renderSessionHistory(sessions = []) {
@@ -712,7 +778,7 @@ function populateReport(payload) {
   drawFaceOverlay(payload.facial);
   drawSpeechTimeline(payload.speech.timeline);
   renderBaselineComparison(payload.baseline_comparison);
-  renderExplainability(payload.explainability);
+  renderExplainability(payload.explainability, payload);
   renderSessionHistory(payload.recent_sessions || []);
   animateRiskGauge(report.fast_risk_index ?? 0, report.category);
   renderConfidenceBreakdown(

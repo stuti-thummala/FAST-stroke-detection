@@ -14,7 +14,9 @@
     <!-- ── HEADER ── -->
     <header class="app-header">
       <div class="header-inner">
-        <div class="header-icon">🧠</div>
+        <div class="header-icon-mark">
+          <span class="hmark-f">F</span><span class="hmark-a">A</span><span class="hmark-s">S</span><span class="hmark-t">T</span>
+        </div>
         <div class="header-text">
           <div class="badge">Clinical Decision Support</div>
           <h1>FAST Stroke Screening</h1>
@@ -76,7 +78,7 @@
       <!-- ── SECTION 1: PATIENT INFO ── -->
       <section class="card">
         <div class="card-header">
-          <div class="card-icon">👤</div>
+          <div class="card-icon ci-blue">PT</div>
           <div class="card-title-group">
             <h2>Patient &amp; Session Info</h2>
             <div class="sub">Enter identifying details before beginning the screening.</div>
@@ -111,35 +113,35 @@
       <!-- ── SECTION 2: BASELINE ── -->
       <section class="card baseline-card">
         <div class="card-header">
-          <div class="card-icon purple">📋</div>
+          <div class="card-icon ci-purple">BL</div>
           <div class="card-title-group">
             <h2>Baseline Recording</h2>
             <div class="sub">Silently saves a reference snapshot for future comparison — no report generated.</div>
           </div>
         </div>
         <div class="actions">
-          <button id="toggleBaselineBtn" type="button" class="btn-blue">▶ Record Baseline</button>
+          <button id="toggleBaselineBtn" type="button" class="btn-blue">Record Baseline</button>
           <span id="baselineRecordStatus"></span>
         </div>
 
         <div class="baseline-drawer" id="baselineDrawer">
           <div class="baseline-mini-step">
-            <span class="step-label">🧑 Face — hold a natural smile for 5 s</span>
+            <span class="step-label">Face — hold a natural smile for 5 s</span>
             <button id="bFaceBtn" type="button" class="btn-blue">Record</button>
             <span id="bFaceStatus">Not recorded</span>
           </div>
           <div class="baseline-mini-step">
-            <span class="step-label">💪 Arm — raise both arms and hold 5 s</span>
+            <span class="step-label">Arm — raise both arms and hold 5 s</span>
             <button id="bArmBtn" type="button" class="btn-blue">Record</button>
             <span id="bArmStatus">Not recorded</span>
           </div>
           <div class="baseline-mini-step">
-            <span class="step-label">🗣️ Speech — read the fixed sentence aloud</span>
+            <span class="step-label">Speech — read the fixed sentence aloud</span>
             <button id="bSpeechBtn" type="button" class="btn-blue">Record</button>
             <span id="bSpeechStatus">Not recorded</span>
           </div>
           <div class="actions" style="margin-top: 16px">
-            <button id="saveBaselineBtn" type="button" class="btn-green" disabled>💾 Save Baseline</button>
+            <button id="saveBaselineBtn" type="button" class="btn-green" disabled>Save Baseline</button>
             <span id="saveBaselineStatus"></span>
           </div>
           <div class="baseline-saved-banner" id="baselineSavedBanner">
@@ -151,16 +153,22 @@
       <!-- ── STEP 1: FACE ── -->
       <section class="card step-card">
         <div class="card-header">
-          <div class="card-icon red">😐</div>
+          <div class="card-icon ci-red">F</div>
           <div class="card-title-group">
             <h2><span class="step-pill">1</span>&nbsp; Face — 5-second smile video</h2>
             <div class="sub">Quantifies facial symmetry using landmark geometry analysis.</div>
           </div>
         </div>
-        <video id="facePreview" autoplay muted playsinline></video>
+        <div class="video-wrap">
+          <video id="facePreview" autoplay muted playsinline></video>
+          <canvas class="landmark-overlay" id="faceLandmarkCanvas"></canvas>
+          <div class="landmark-badge" id="faceLandmarkBadge">
+            <span class="lb-dot">◌</span><span class="lb-text">Loading…</span>
+          </div>
+        </div>
         <p class="coach" id="faceCoach">Center your face, keep both eyes visible, and smile naturally.</p>
         <div class="actions">
-          <button id="faceRecordBtn">⏺ Record Face (5s)</button>
+          <button id="faceRecordBtn">Record Face (5s)</button>
           <span id="faceStatus">Not recorded</span>
         </div>
       </section>
@@ -168,16 +176,22 @@
       <!-- ── STEP 2: ARM ── -->
       <section class="card step-card">
         <div class="card-header">
-          <div class="card-icon orange">💪</div>
+          <div class="card-icon ci-orange">A</div>
           <div class="card-title-group">
             <h2><span class="step-pill">2</span>&nbsp; Arm — 5-second hold video</h2>
             <div class="sub">Detects drift and bilateral asymmetry in arm elevation via pose estimation.</div>
           </div>
         </div>
-        <video id="armPreview" autoplay muted playsinline></video>
+        <div class="video-wrap">
+          <video id="armPreview" autoplay muted playsinline></video>
+          <canvas class="landmark-overlay" id="armLandmarkCanvas"></canvas>
+          <div class="landmark-badge" id="armLandmarkBadge">
+            <span class="lb-dot">◌</span><span class="lb-text">Loading…</span>
+          </div>
+        </div>
         <p class="coach" id="armCoach">Raise both arms fully into frame and hold them steady.</p>
         <div class="actions">
-          <button id="armRecordBtn">⏺ Record Arm (5s)</button>
+          <button id="armRecordBtn">Record Arm (5s)</button>
           <span id="armStatus">Not recorded</span>
         </div>
       </section>
@@ -185,7 +199,7 @@
       <!-- ── STEP 3: SPEECH ── -->
       <section class="card step-card">
         <div class="card-header">
-          <div class="card-icon green">🗣️</div>
+          <div class="card-icon ci-green">S</div>
           <div class="card-title-group">
             <h2><span class="step-pill">3</span>&nbsp; Speech — 5-second phrase</h2>
             <div class="sub">Analyzes cadence, articulation pace, and instability markers.</div>
@@ -196,7 +210,7 @@
         </p>
         <p class="coach" id="speechCoach">Speak clearly, at a natural pace, with minimal background noise.</p>
         <div class="actions">
-          <button id="speechRecordBtn">⏺ Record Speech (5s)</button>
+          <button id="speechRecordBtn">Record Speech (5s)</button>
           <span id="speechStatus">Not recorded</span>
         </div>
         <div class="speech-preview">
@@ -211,16 +225,16 @@
 
       <!-- ── SUBMIT ROW ── -->
       <section class="submit-row">
-        <button id="analyzeBtn">🔬 Analyze FAST</button>
-        <button id="exportPdfBtn" type="button" class="btn-blue" disabled>📄 Export PDF</button>
-        <button id="printBtn" type="button" class="btn-outline" disabled>🖨 Print</button>
+        <button id="analyzeBtn">Analyze FAST</button>
+        <button id="exportPdfBtn" type="button" class="btn-blue" disabled>Export PDF</button>
+        <button id="printBtn" type="button" class="btn-outline" disabled>Print</button>
         <span id="analyzeStatus"></span>
       </section>
 
       <!-- ── REPORT CARD ── -->
       <section class="card" id="reportCard" hidden>
         <div class="card-header">
-          <div class="card-icon">📊</div>
+          <div class="card-icon ci-indigo">Rx</div>
           <div class="card-title-group">
             <h2>Quantified Triage Report</h2>
             <div class="sub">AI-generated result — for clinical support only, not a medical diagnosis.</div>
@@ -273,43 +287,6 @@
           <div class="score-cell"><strong>Timestamp</strong><span id="reportTimestamp">—</span></div>
         </div>
 
-        <!-- Confidence Breakdown Panel -->
-        <div class="conf-breakdown-panel" id="confidenceBreakdown" hidden>
-          <div class="conf-panel-header">
-            <span class="conf-title">🎯 How confidence was derived</span>
-            <span class="conf-overall-chip" id="confOverall">—</span>
-          </div>
-          <p class="conf-description">
-            Confidence reflects recording signal quality across all three modalities.
-            Low scores may indicate poor lighting, occlusion, or background noise.
-            Scores above 75% are considered reliable.
-          </p>
-          <div class="conf-rows">
-            <div class="conf-row">
-              <span class="conf-icon">😐</span>
-              <span class="conf-label">Face Signal Quality</span>
-              <div class="conf-bar-wrap"><div class="conf-bar-fill" id="confFaceFill" style="width:0%"></div></div>
-              <span class="conf-val" id="confFaceVal">—</span>
-            </div>
-            <div class="conf-row">
-              <span class="conf-icon">💪</span>
-              <span class="conf-label">Arm Pose Clarity</span>
-              <div class="conf-bar-wrap"><div class="conf-bar-fill" id="confArmFill"  style="width:0%"></div></div>
-              <span class="conf-val" id="confArmVal">—</span>
-            </div>
-            <div class="conf-row">
-              <span class="conf-icon">🎙️</span>
-              <span class="conf-label">Audio Signal Quality</span>
-              <div class="conf-bar-wrap"><div class="conf-bar-fill" id="confSpeechFill" style="width:0%"></div></div>
-              <span class="conf-val" id="confSpeechVal">—</span>
-            </div>
-          </div>
-          <div class="conf-weight-note">
-            <strong>Formula:</strong> Overall confidence = (Face + Arm + Speech) ÷ 3,
-            then mapped to <em>Low</em> (&lt;45%), <em>Moderate</em> (45–75%), or <em>High</em> (≥75%).
-          </div>
-        </div>
-
         <h3>Arm Drift Graph</h3>
         <canvas id="armChart" width="800" height="240"></canvas>
 
@@ -322,8 +299,8 @@
         <h3>Baseline Comparison</h3>
         <div id="baselinePanel" class="comparison-panel">No baseline comparison available.</div>
 
-        <h3>Explainability</h3>
-        <div id="explainabilityPanel" class="comparison-panel"></div>
+        <h3>Score Breakdown &amp; Explainability</h3>
+        <div id="explainabilityPanel" class="explainability-panel"></div>
 
         <h3>Clinical Recommendation</h3>
         <div id="recommendationPanel" class="recommendation-panel">
@@ -335,6 +312,88 @@
 
         <h3>Recent Session Audit Trail</h3>
         <div id="sessionHistory" class="comparison-panel">No previous sessions loaded.</div>
+
+        <!-- Confidence Breakdown Panel -->
+        <h3>Recording Quality &amp; Confidence</h3>
+        <div class="conf-breakdown-panel" id="confidenceBreakdown" hidden>
+          <div class="conf-panel-header">
+            <span class="conf-title">How confidence was derived</span>
+            <span class="conf-overall-chip" id="confOverall">—</span>
+          </div>
+          <p class="conf-description">
+            Confidence reflects recording signal quality across all three modalities.
+            Low scores may indicate poor lighting, occlusion, or background noise.
+            Scores above 75% are considered reliable.
+          </p>
+          <div class="conf-rows">
+            <div class="conf-row">
+              <span class="conf-icon ci-red">F</span>
+              <span class="conf-label">Face Signal Quality</span>
+              <div class="conf-bar-wrap"><div class="conf-bar-fill" id="confFaceFill" style="width:0%"></div></div>
+              <span class="conf-val" id="confFaceVal">—</span>
+            </div>
+            <div class="conf-row">
+              <span class="conf-icon ci-orange">A</span>
+              <span class="conf-label">Arm Pose Clarity</span>
+              <div class="conf-bar-wrap"><div class="conf-bar-fill" id="confArmFill"  style="width:0%"></div></div>
+              <span class="conf-val" id="confArmVal">—</span>
+            </div>
+            <div class="conf-row">
+              <span class="conf-icon ci-green">S</span>
+              <span class="conf-label">Audio Signal Quality</span>
+              <div class="conf-bar-wrap"><div class="conf-bar-fill" id="confSpeechFill" style="width:0%"></div></div>
+              <span class="conf-val" id="confSpeechVal">—</span>
+            </div>
+          </div>
+          <div class="conf-weight-note">
+            <strong>Formula:</strong> Overall confidence = (Face + Arm + Speech) ÷ 3,
+            then mapped to <em>Low</em> (&lt;45%), <em>Moderate</em> (45–75%), or <em>High</em> (≥75%).
+          </div>
+        </div>
+
+        <!-- Score Derivation Methodology -->
+        <details class="methodology-section" id="methodologySection">
+          <summary class="methodology-toggle">Score Derivation Methodology</summary>
+          <div class="methodology-body">
+            <h4 class="meth-heading">FAST Risk Index Formula</h4>
+            <div class="meth-formula">
+              FAST Risk Index = <strong>0.40</strong> × Face + <strong>0.40</strong> × Arm + <strong>0.20</strong> × Speech
+            </div>
+            <div class="meth-grid">
+              <div class="meth-card meth-red">
+                <div class="meth-card-title">Face (40%)</div>
+                <ul>
+                  <li><strong>mouth_mean</strong> — average horizontal disparity between left/right mouth corner landmarks across frames</li>
+                  <li><strong>eye_mean</strong> — average vertical height difference between left/right eye aperture</li>
+                  <li>Score = weighted combination normalized to [0, 1]; higher = more asymmetric</li>
+                </ul>
+              </div>
+              <div class="meth-card meth-orange">
+                <div class="meth-card-title">Arm (40%)</div>
+                <ul>
+                  <li><strong>drift_metric</strong> — mean frame-over-frame downward displacement of the weaker wrist</li>
+                  <li><strong>final_height_diff</strong> — bilateral elevation gap at end of hold window</li>
+                  <li>Score = max(drift_metric, height_diff) scaled to [0, 1]</li>
+                </ul>
+              </div>
+              <div class="meth-card meth-green">
+                <div class="meth-card-title">Speech (20%)</div>
+                <ul>
+                  <li><strong>pause_var</strong> — variance of inter-word silence durations (high = dysarthric hesitation)</li>
+                  <li><strong>articulation_dev</strong> — standard deviation of per-phoneme energy envelope</li>
+                  <li><strong>mfcc_var</strong> — mean variance across 13 MFCCs (spectral instability)</li>
+                  <li>Score = weighted sum of all three, bounded [0, 1]</li>
+                </ul>
+              </div>
+            </div>
+            <div class="meth-confidence-note">
+              <strong>Quality Confidence</strong> — each channel independently estimates recording quality via MediaPipe landmark visibility scores (face/arm) and SNR/spectral flatness (speech). Overall confidence = arithmetic mean; mapped to Low (&lt;45%), Moderate (45–75%), High (&ge;75%).
+            </div>
+            <div class="meth-threshold-note">
+              <strong>Risk thresholds:</strong> Low &lt; 0.3 &nbsp;|&nbsp; Moderate 0.3–0.6 &nbsp;|&nbsp; High &ge; 0.6
+            </div>
+          </div>
+        </details>
       </section>
 
     </main>
@@ -344,5 +403,6 @@
     </footer>
 
     <script src="/static/main.js"></script>
+    <script type="module" src="/static/landmark-overlay.js"></script>
   </body>
 </html>
