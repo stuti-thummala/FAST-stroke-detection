@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import tempfile
 from io import BytesIO
@@ -17,6 +18,7 @@ from .analysis.risk import build_baseline_comparison, build_explainability, buil
 from .analysis.speech import analyze_speech_audio
 from .reporting import generate_pdf
 from .storage import append_session, latest_baseline, latest_session, list_sessions
+from .twilio_alert import dispatch_code_stroke
 
 import qrcode
 
@@ -123,6 +125,13 @@ async def analyze_fast(
             "explainability": explainability,
         }
         append_session(session_payload)
+
+        # Auto-dispatch Code Stroke alert for high-risk results
+        if report.get("category") == "High" and not is_baseline:
+            try:
+                dispatch_code_stroke(patient_id=patient_id)
+            except Exception as alert_exc:
+                logging.warning("Code Stroke alert dispatch failed: %s", alert_exc)
 
         if is_baseline:
             return {
